@@ -55,18 +55,17 @@ func (m *statusModel) processImages() tea.Msg {
 	// Create the OCR client with the API key from config
 	ocrClient := client.New(m.config.APIKey)
 
-	// Create application instance
-	app := ocr.NewApp(ocrClient, repo)
-
 	// Convert command config to app config (only fields the app needs)
 	appConfig := &ocr.AppConfig{
-		OutputFile:  m.config.OutputFile,
 		Concurrency: m.config.Concurrency,
 		StartDate:   m.config.StartDate,
 	}
 
+	// Create application instance
+	app := ocr.NewApp(ocrClient, repo, appConfig)
+
 	// Process images
-	if err := app.ProcessImages(m.ctx, appConfig); err != nil {
+	if err := app.ProcessImages(m.ctx); err != nil {
 		return processingErrorMsg{err: err}
 	}
 

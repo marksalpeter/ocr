@@ -39,18 +39,16 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Monday, January 1, 2024\nTest text 1", nil)
 		mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", nil)
 
-		// Create output file path
-		outputFile := filepath.Join(tmpDir, "output.txt")
-
-		// Create app and process
-		app := NewApp(mockClient, mockRepo)
+		// Create app config
 		config := &AppConfig{
-			OutputFile:  outputFile,
 			Concurrency: 2,
 			StartDate:   "",
 		}
 
-		err = app.ProcessImages(context.Background(), config)
+		// Create app and process
+		app := NewApp(mockClient, mockRepo, config)
+
+		err = app.ProcessImages(context.Background())
 		assert.NoError(t, err)
 
 		// Verify all mocks were called
@@ -77,13 +75,12 @@ func TestApp_ProcessImages(t *testing.T) {
 
 		mockRepo.On("GetImageNames").Return([]string{}, nil)
 
-		app := NewApp(mockClient, mockRepo)
 		config := &AppConfig{
-			OutputFile:  filepath.Join(tmpDir, "output.txt"),
 			Concurrency: 2,
 		}
+		app := NewApp(mockClient, mockRepo, config)
 
-		err = app.ProcessImages(context.Background(), config)
+		err = app.ProcessImages(context.Background())
 		assert.Error(t, err)
 		assert.Equal(t, ErrNoImagesFound, err)
 
@@ -96,13 +93,12 @@ func TestApp_ProcessImages(t *testing.T) {
 
 		mockRepo.On("GetImageNames").Return(nil, os.ErrNotExist)
 
-		app := NewApp(mockClient, mockRepo)
 		config := &AppConfig{
-			OutputFile:  "output.txt",
 			Concurrency: 2,
 		}
+		app := NewApp(mockClient, mockRepo, config)
 
-		err := app.ProcessImages(context.Background(), config)
+		err := app.ProcessImages(context.Background())
 		assert.Error(t, err)
 
 		mockRepo.AssertExpectations(t)
@@ -110,7 +106,7 @@ func TestApp_ProcessImages(t *testing.T) {
 }
 
 func TestApp_formatOutput(t *testing.T) {
-	app := NewApp(nil, nil)
+	app := NewApp(nil, nil, &AppConfig{})
 
 	results := []OCRResult{
 		{
@@ -132,33 +128,41 @@ func TestApp_formatOutput(t *testing.T) {
 
 	output := app.formatOutput(results, "Sunday, December 31, 2023")
 
-	assert.Contains(t, output, "---")
-	assert.Contains(t, output, "Img-0001.jpg")
-	assert.Contains(t, output, "Monday, January 1, 2024")
-	assert.Contains(t, output, "First page text")
-	assert.Contains(t, output, "Img-0002.jpg")
-	assert.Contains(t, output, "Monday, January 1, 2024") // Should carry forward
-	assert.Contains(t, output, "Second page text")
-	assert.Contains(t, output, "Img-0003.jpg")
-	assert.Contains(t, output, "Tuesday, January 2, 2024")
-	assert.Contains(t, output, "Third page text")
+	expected := `---
+Img-0001.jpg
+Monday, January 1, 2024
+First page text
+---
+Img-0002.jpg
+Monday, January 1, 2024
+Second page text
+---
+Img-0003.jpg
+Tuesday, January 2, 2024
+Third page text
+`
+	assert.Equal(t, expected, output)
 }
 
 func TestApp_formatOutput_WithStartDate(t *testing.T) {
-	app := NewApp(nil, nil)
+	app := NewApp(nil, nil, &AppConfig{})
 
 	results := []OCRResult{
 		{
 			ImageName: "Img-0001.jpg",
-			Date:      "", // No date in first image
+			Date:      "", // No date in first image, should use start date
 			Text:      "First page text",
 		},
 	}
 
 	output := app.formatOutput(results, "Sunday, December 31, 2023")
 
-	assert.Contains(t, output, "Sunday, December 31, 2023")
-	assert.Contains(t, output, "First page text")
+	expected := `---
+Img-0001.jpg
+Sunday, December 31, 2023
+First page text
+`
+	assert.Equal(t, expected, output)
 }
 
 func TestExtractDate(t *testing.T) {
@@ -208,7 +212,7 @@ func TestApp_GetCost(t *testing.T) {
 
 	mockClient.On("GetCost").Return(0.50, 0.10)
 
-	app := NewApp(mockClient, mockRepo)
+	app := NewApp(mockClient, mockRepo, &AppConfig{})
 	total, perImage := app.GetCost()
 
 	assert.Equal(t, 0.50, total)

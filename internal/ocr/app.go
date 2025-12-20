@@ -11,7 +11,6 @@ import (
 
 // AppConfig contains only the configuration parameters needed by the app
 type AppConfig struct {
-	OutputFile  string
 	Concurrency int
 	StartDate   string
 }
@@ -20,18 +19,20 @@ type AppConfig struct {
 type App struct {
 	ocrClient OCRClient
 	repo      Repository
+	config    *AppConfig
 }
 
-// NewApp creates a new App instance
-func NewApp(ocrClient OCRClient, repo Repository) *App {
+// NewApp creates a new App instance with the given configuration
+func NewApp(ocrClient OCRClient, repo Repository, config *AppConfig) *App {
 	return &App{
 		ocrClient: ocrClient,
 		repo:      repo,
+		config:    config,
 	}
 }
 
 // ProcessImages processes all images in the specified directory
-func (a *App) ProcessImages(ctx context.Context, config *AppConfig) error {
+func (a *App) ProcessImages(ctx context.Context) error {
 	// Get image names (uses repository's base directory)
 	imageNames, err := a.repo.GetImageNames()
 	if err != nil {
@@ -42,7 +43,7 @@ func (a *App) ProcessImages(ctx context.Context, config *AppConfig) error {
 	}
 
 	// Process images in parallel
-	results := a.processImagesParallel(ctx, imageNames, config)
+	results := a.processImagesParallel(ctx, imageNames)
 
 	// Sort results by image name to maintain order
 	sort.Slice(results, func(i, j int) bool {
@@ -50,7 +51,7 @@ func (a *App) ProcessImages(ctx context.Context, config *AppConfig) error {
 	})
 
 	// Format and concatenate output
-	output := a.formatOutput(results, config.StartDate)
+	output := a.formatOutput(results, a.config.StartDate)
 
 	// Save output
 	if err := a.repo.SaveOutput(output); err != nil {
@@ -61,8 +62,8 @@ func (a *App) ProcessImages(ctx context.Context, config *AppConfig) error {
 }
 
 // processImagesParallel processes images in parallel with configurable concurrency
-func (a *App) processImagesParallel(ctx context.Context, imageNames []string, config *AppConfig) []OCRResult {
-	concurrency := config.Concurrency
+func (a *App) processImagesParallel(ctx context.Context, imageNames []string) []OCRResult {
+	concurrency := a.config.Concurrency
 	if concurrency <= 0 {
 		concurrency = 10
 	}
