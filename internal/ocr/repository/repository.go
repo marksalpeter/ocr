@@ -11,18 +11,20 @@ import (
 
 // Repository implements the ocr.Repository interface for file operations
 type Repository struct {
-	baseDir string
+	baseDir    string
+	outputPath string
 }
 
-// New creates a new Repository instance with the specified base directory.
+// New creates a new Repository instance with the specified base directory and output path.
 // If baseDir is empty, it defaults to the current working directory.
-func New(baseDir string) *Repository {
+func New(baseDir, outputPath string) *Repository {
 	if baseDir == "" {
 		wd, _ := os.Getwd()
 		baseDir = wd
 	}
 	return &Repository{
-		baseDir: baseDir,
+		baseDir:    baseDir,
+		outputPath: outputPath,
 	}
 }
 
@@ -35,14 +37,10 @@ var (
 	ErrFailedToSave = fmt.Errorf("failed to save output")
 )
 
-// GetImageNames returns sorted image filenames from the specified directory.
-// If dir is empty, uses the repository's base directory.
-func (r *Repository) GetImageNames(dir string) ([]string, error) {
-	if dir == "" {
-		dir = r.baseDir
-	}
+// GetImageNames returns sorted image filenames from the repository's base directory.
+func (r *Repository) GetImageNames() ([]string, error) {
 	// Check if directory exists
-	info, err := os.Stat(dir)
+	info, err := os.Stat(r.baseDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, ErrDirectoryNotFound
@@ -63,7 +61,7 @@ func (r *Repository) GetImageNames(dir string) ([]string, error) {
 		".webp": true,
 	}
 
-	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(r.baseDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -87,13 +85,9 @@ func (r *Repository) GetImageNames(dir string) ([]string, error) {
 	return imageNames, nil
 }
 
-// LoadImageByName loads image data by filename from the specified directory.
-// If dir is empty, uses the repository's base directory.
-func (r *Repository) LoadImageByName(dir, filename string) ([]byte, error) {
-	if dir == "" {
-		dir = r.baseDir
-	}
-	path := filepath.Join(dir, filename)
+// LoadImageByName loads image data by filename from the repository's base directory.
+func (r *Repository) LoadImageByName(filename string) ([]byte, error) {
+	path := filepath.Join(r.baseDir, filename)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -104,9 +98,9 @@ func (r *Repository) LoadImageByName(dir, filename string) ([]byte, error) {
 	return data, nil
 }
 
-// SaveOutput saves the output text to the specified path
-func (r *Repository) SaveOutput(path string, content string) error {
-	err := os.WriteFile(path, []byte(content), 0644)
+// SaveOutput saves the output text to the repository's configured output path
+func (r *Repository) SaveOutput(content string) error {
+	err := os.WriteFile(r.outputPath, []byte(content), 0644)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrFailedToSave, err)
 	}

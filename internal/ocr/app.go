@@ -33,7 +33,7 @@ func NewApp(ocrClient OCRClient, repo Repository) *App {
 // ProcessImages processes all images in the specified directory
 func (a *App) ProcessImages(ctx context.Context, config *AppConfig) error {
 	// Get image names (uses repository's base directory)
-	imageNames, err := a.repo.GetImageNames("")
+	imageNames, err := a.repo.GetImageNames()
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrNoImagesFound, err)
 	}
@@ -53,7 +53,7 @@ func (a *App) ProcessImages(ctx context.Context, config *AppConfig) error {
 	output := a.formatOutput(results, config.StartDate)
 
 	// Save output
-	if err := a.repo.SaveOutput(config.OutputFile, output); err != nil {
+	if err := a.repo.SaveOutput(output); err != nil {
 		return fmt.Errorf("%w: %v", ErrProcessingFailed, err)
 	}
 
@@ -118,7 +118,7 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 	}
 
 	// Load image (uses repository's base directory)
-	imageData, err := a.repo.LoadImageByName("", imageName)
+	imageData, err := a.repo.LoadImageByName(imageName)
 	if err != nil {
 		result.Text = fmt.Sprintf("Error loading image: %v", err)
 		return result

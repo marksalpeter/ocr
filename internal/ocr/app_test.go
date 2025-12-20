@@ -30,10 +30,10 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockClient := new(MockOCRClient)
 
 		// Setup repository mocks
-		mockRepo.On("GetImageNames", "").Return(testFiles, nil)
-		mockRepo.On("LoadImageByName", "", "Img-0001.jpg").Return([]byte("image1"), nil)
-		mockRepo.On("LoadImageByName", "", "Img-0002.jpg").Return([]byte("image2"), nil)
-		mockRepo.On("SaveOutput", mock.Anything, mock.Anything).Return(nil)
+		mockRepo.On("GetImageNames").Return(testFiles, nil)
+		mockRepo.On("LoadImageByName", "Img-0001.jpg").Return([]byte("image1"), nil)
+		mockRepo.On("LoadImageByName", "Img-0002.jpg").Return([]byte("image2"), nil)
+		mockRepo.On("SaveOutput", mock.Anything).Return(nil)
 
 		// Setup OCR client mocks
 		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Monday, January 1, 2024\nTest text 1", nil)
@@ -57,8 +57,8 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockRepo.AssertExpectations(t)
 		mockClient.AssertExpectations(t)
 
-		// Verify SaveOutput was called with the correct file path
-		mockRepo.AssertCalled(t, "SaveOutput", outputFile, mock.MatchedBy(func(content string) bool {
+		// Verify SaveOutput was called with the correct content
+		mockRepo.AssertCalled(t, "SaveOutput", mock.MatchedBy(func(content string) bool {
 			return assert.Contains(t, content, "Img-0001.jpg") &&
 				assert.Contains(t, content, "Img-0002.jpg") &&
 				assert.Contains(t, content, "Monday, January 1, 2024") &&
@@ -75,7 +75,7 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockRepo := new(MockRepository)
 		mockClient := new(MockOCRClient)
 
-		mockRepo.On("GetImageNames", "").Return([]string{}, nil)
+		mockRepo.On("GetImageNames").Return([]string{}, nil)
 
 		app := NewApp(mockClient, mockRepo)
 		config := &AppConfig{
@@ -94,7 +94,7 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockRepo := new(MockRepository)
 		mockClient := new(MockOCRClient)
 
-		mockRepo.On("GetImageNames", "").Return(nil, os.ErrNotExist)
+		mockRepo.On("GetImageNames").Return(nil, os.ErrNotExist)
 
 		app := NewApp(mockClient, mockRepo)
 		config := &AppConfig{

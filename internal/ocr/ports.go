@@ -16,12 +16,12 @@ type OCRClient interface {
 
 // Repository defines the interface for file operations
 type Repository interface {
-	// GetImageNames returns sorted image filenames from the specified directory
-	GetImageNames(dir string) ([]string, error)
-	// LoadImageByName loads image data by filename from the specified directory
-	LoadImageByName(dir, filename string) ([]byte, error)
-	// SaveOutput saves the output text to the specified path
-	SaveOutput(path string, content string) error
+	// GetImageNames returns sorted image filenames from the repository's base directory
+	GetImageNames() ([]string, error)
+	// LoadImageByName loads image data by filename from the repository's base directory
+	LoadImageByName(filename string) ([]byte, error)
+	// SaveOutput saves the output text to the repository's configured output path
+	SaveOutput(content string) error
 }
 
 // OCRResult represents the result of processing a single image

@@ -49,8 +49,8 @@ func (m *statusModel) Init() tea.Cmd {
 }
 
 func (m *statusModel) processImages() tea.Msg {
-	// Create repository with the input directory from config
-	repo := repository.New(m.config.InputDir)
+	// Create repository with the input directory and output file from config
+	repo := repository.New(m.config.InputDir, m.config.OutputFile)
 
 	// Create the OCR client with the API key from config
 	ocrClient := client.New(m.config.APIKey)

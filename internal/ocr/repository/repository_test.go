@@ -14,10 +14,10 @@ func TestRepository_GetImageNames(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	repo := New("")
+	repo := New(tmpDir, "")
 
 	// Test empty directory
-	names, err := repo.GetImageNames(tmpDir)
+	names, err := repo.GetImageNames()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestRepository_GetImageNames(t *testing.T) {
 	}
 
 	// Test getting image names
-	names, err = repo.GetImageNames(tmpDir)
+	names, err = repo.GetImageNames()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -50,7 +50,8 @@ func TestRepository_GetImageNames(t *testing.T) {
 	}
 
 	// Test non-existent directory
-	_, err = repo.GetImageNames("/nonexistent/dir")
+		badRepo := New("/nonexistent/dir", "")
+	_, err = badRepo.GetImageNames()
 	if err == nil {
 		t.Error("Expected error for non-existent directory")
 	}
@@ -66,7 +67,7 @@ func TestRepository_LoadImageByName(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	repo := New("")
+	repo := New(tmpDir, "")
 
 	// Create test image file
 	testFile := "test.jpg"
@@ -77,7 +78,7 @@ func TestRepository_LoadImageByName(t *testing.T) {
 	}
 
 	// Test loading existing file
-	data, err := repo.LoadImageByName(tmpDir, testFile)
+	data, err := repo.LoadImageByName(testFile)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -86,7 +87,7 @@ func TestRepository_LoadImageByName(t *testing.T) {
 	}
 
 	// Test loading non-existent file
-	_, err = repo.LoadImageByName(tmpDir, "nonexistent.jpg")
+	_, err = repo.LoadImageByName("nonexistent.jpg")
 	if err == nil {
 		t.Error("Expected error for non-existent file")
 	}
@@ -103,12 +104,12 @@ func TestRepository_SaveOutput(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	repo := New("")
-
 	// Test saving output
 	outputPath := filepath.Join(tmpDir, "output.txt")
+	repo := New("", outputPath)
+
 	content := "test output content"
-	err = repo.SaveOutput(outputPath, content)
+	err = repo.SaveOutput(content)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

@@ -17,9 +17,9 @@ func (_m *MockRepository) EXPECT() *MockRepository_Expecter {
 	return &MockRepository_Expecter{mock: &_m.Mock}
 }
 
-// GetImageNames provides a mock function with given fields: dir
-func (_m *MockRepository) GetImageNames(dir string) ([]string, error) {
-	ret := _m.Called(dir)
+// GetImageNames provides a mock function with no fields
+func (_m *MockRepository) GetImageNames() ([]string, error) {
+	ret := _m.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetImageNames")
@@ -27,19 +27,19 @@ func (_m *MockRepository) GetImageNames(dir string) ([]string, error) {
 
 	var r0 []string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) ([]string, error)); ok {
-		return rf(dir)
+	if rf, ok := ret.Get(0).(func() ([]string, error)); ok {
+		return rf()
 	}
-	if rf, ok := ret.Get(0).(func(string) []string); ok {
-		r0 = rf(dir)
+	if rf, ok := ret.Get(0).(func() []string); ok {
+		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(dir)
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -53,14 +53,13 @@ type MockRepository_GetImageNames_Call struct {
 }
 
 // GetImageNames is a helper method to define mock.On call
-//   - dir string
-func (_e *MockRepository_Expecter) GetImageNames(dir interface{}) *MockRepository_GetImageNames_Call {
-	return &MockRepository_GetImageNames_Call{Call: _e.mock.On("GetImageNames", dir)}
+func (_e *MockRepository_Expecter) GetImageNames() *MockRepository_GetImageNames_Call {
+	return &MockRepository_GetImageNames_Call{Call: _e.mock.On("GetImageNames")}
 }
 
-func (_c *MockRepository_GetImageNames_Call) Run(run func(dir string)) *MockRepository_GetImageNames_Call {
+func (_c *MockRepository_GetImageNames_Call) Run(run func()) *MockRepository_GetImageNames_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		run()
 	})
 	return _c
 }
@@ -70,14 +69,14 @@ func (_c *MockRepository_GetImageNames_Call) Return(_a0 []string, _a1 error) *Mo
 	return _c
 }
 
-func (_c *MockRepository_GetImageNames_Call) RunAndReturn(run func(string) ([]string, error)) *MockRepository_GetImageNames_Call {
+func (_c *MockRepository_GetImageNames_Call) RunAndReturn(run func() ([]string, error)) *MockRepository_GetImageNames_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// LoadImageByName provides a mock function with given fields: dir, filename
-func (_m *MockRepository) LoadImageByName(dir string, filename string) ([]byte, error) {
-	ret := _m.Called(dir, filename)
+// LoadImageByName provides a mock function with given fields: filename
+func (_m *MockRepository) LoadImageByName(filename string) ([]byte, error) {
+	ret := _m.Called(filename)
 
 	if len(ret) == 0 {
 		panic("no return value specified for LoadImageByName")
@@ -85,19 +84,19 @@ func (_m *MockRepository) LoadImageByName(dir string, filename string) ([]byte, 
 
 	var r0 []byte
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, string) ([]byte, error)); ok {
-		return rf(dir, filename)
+	if rf, ok := ret.Get(0).(func(string) ([]byte, error)); ok {
+		return rf(filename)
 	}
-	if rf, ok := ret.Get(0).(func(string, string) []byte); ok {
-		r0 = rf(dir, filename)
+	if rf, ok := ret.Get(0).(func(string) []byte); ok {
+		r0 = rf(filename)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(dir, filename)
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(filename)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -111,15 +110,14 @@ type MockRepository_LoadImageByName_Call struct {
 }
 
 // LoadImageByName is a helper method to define mock.On call
-//   - dir string
 //   - filename string
-func (_e *MockRepository_Expecter) LoadImageByName(dir interface{}, filename interface{}) *MockRepository_LoadImageByName_Call {
-	return &MockRepository_LoadImageByName_Call{Call: _e.mock.On("LoadImageByName", dir, filename)}
+func (_e *MockRepository_Expecter) LoadImageByName(filename interface{}) *MockRepository_LoadImageByName_Call {
+	return &MockRepository_LoadImageByName_Call{Call: _e.mock.On("LoadImageByName", filename)}
 }
 
-func (_c *MockRepository_LoadImageByName_Call) Run(run func(dir string, filename string)) *MockRepository_LoadImageByName_Call {
+func (_c *MockRepository_LoadImageByName_Call) Run(run func(filename string)) *MockRepository_LoadImageByName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
+		run(args[0].(string))
 	})
 	return _c
 }
@@ -129,22 +127,22 @@ func (_c *MockRepository_LoadImageByName_Call) Return(_a0 []byte, _a1 error) *Mo
 	return _c
 }
 
-func (_c *MockRepository_LoadImageByName_Call) RunAndReturn(run func(string, string) ([]byte, error)) *MockRepository_LoadImageByName_Call {
+func (_c *MockRepository_LoadImageByName_Call) RunAndReturn(run func(string) ([]byte, error)) *MockRepository_LoadImageByName_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// SaveOutput provides a mock function with given fields: path, content
-func (_m *MockRepository) SaveOutput(path string, content string) error {
-	ret := _m.Called(path, content)
+// SaveOutput provides a mock function with given fields: content
+func (_m *MockRepository) SaveOutput(content string) error {
+	ret := _m.Called(content)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SaveOutput")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string) error); ok {
-		r0 = rf(path, content)
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(content)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -158,15 +156,14 @@ type MockRepository_SaveOutput_Call struct {
 }
 
 // SaveOutput is a helper method to define mock.On call
-//   - path string
 //   - content string
-func (_e *MockRepository_Expecter) SaveOutput(path interface{}, content interface{}) *MockRepository_SaveOutput_Call {
-	return &MockRepository_SaveOutput_Call{Call: _e.mock.On("SaveOutput", path, content)}
+func (_e *MockRepository_Expecter) SaveOutput(content interface{}) *MockRepository_SaveOutput_Call {
+	return &MockRepository_SaveOutput_Call{Call: _e.mock.On("SaveOutput", content)}
 }
 
-func (_c *MockRepository_SaveOutput_Call) Run(run func(path string, content string)) *MockRepository_SaveOutput_Call {
+func (_c *MockRepository_SaveOutput_Call) Run(run func(content string)) *MockRepository_SaveOutput_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
+		run(args[0].(string))
 	})
 	return _c
 }
@@ -176,7 +173,7 @@ func (_c *MockRepository_SaveOutput_Call) Return(_a0 error) *MockRepository_Save
 	return _c
 }
 
-func (_c *MockRepository_SaveOutput_Call) RunAndReturn(run func(string, string) error) *MockRepository_SaveOutput_Call {
+func (_c *MockRepository_SaveOutput_Call) RunAndReturn(run func(string) error) *MockRepository_SaveOutput_Call {
 	_c.Call.Return(run)
 	return _c
 }
