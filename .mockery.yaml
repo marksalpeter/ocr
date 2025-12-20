@@ -1,0 +1,14 @@
+with-expecter: true
+packages:
+  github.com/marksalpeter/ocr/internal/ocr:
+    interfaces:
+      OCRClient:
+        filename: mock_OCRClient.go
+        dir: internal/ocr
+      Repository:
+        filename: mock_Repository.go
+        dir: internal/ocr
+      ConfigCollector:
+        filename: mock_ConfigCollector.go
+        dir: internal/ocr
+
