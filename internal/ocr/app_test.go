@@ -52,7 +52,7 @@ func TestApp_ProcessImages(t *testing.T) {
 		}
 
 		// Create app and process
-		app := NewApp(mockClient, mockRepo, mockResizer, config)
+		app := NewApp(mockClient, mockRepo, mockResizer, nil, config)
 
 		results, err := app.ProcessImages(context.Background())
 		assert.NoError(t, err)
@@ -92,7 +92,7 @@ func TestApp_ProcessImages(t *testing.T) {
 		config := &AppConfig{
 			Concurrency: 2,
 		}
-		app := NewApp(mockClient, mockRepo, mockResizer, config)
+		app := NewApp(mockClient, mockRepo, mockResizer, nil, config)
 
 		_, err = app.ProcessImages(context.Background())
 		assert.Error(t, err)
@@ -113,7 +113,7 @@ func TestApp_ProcessImages(t *testing.T) {
 		config := &AppConfig{
 			Concurrency: 2,
 		}
-		app := NewApp(mockClient, mockRepo, mockResizer, config)
+		app := NewApp(mockClient, mockRepo, mockResizer, nil, config)
 
 		_, err := app.ProcessImages(context.Background())
 		assert.Error(t, err)
@@ -124,7 +124,7 @@ func TestApp_ProcessImages(t *testing.T) {
 
 func TestApp_formatOutput(t *testing.T) {
 	mockResizer := new(MockResizer)
-	app := NewApp(nil, nil, mockResizer, &AppConfig{})
+	app := NewApp(nil, nil, mockResizer, nil, &AppConfig{})
 
 	results := []OCRResult{
 		{
@@ -164,7 +164,7 @@ Third page text
 
 func TestApp_formatOutput_WithStartDate(t *testing.T) {
 	mockResizer := new(MockResizer)
-	app := NewApp(nil, nil, mockResizer, &AppConfig{})
+	app := NewApp(nil, nil, mockResizer, nil, &AppConfig{})
 
 	results := []OCRResult{
 		{
@@ -266,7 +266,7 @@ func TestApp_ProcessImages_Results(t *testing.T) {
 	}
 
 	// Create app and process
-	app := NewApp(mockClient, mockRepo, mockResizer, config)
+	app := NewApp(mockClient, mockRepo, mockResizer, nil, config)
 
 	results, err := app.ProcessImages(context.Background())
 	assert.NoError(t, err)

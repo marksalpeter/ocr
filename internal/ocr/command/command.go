@@ -53,14 +53,14 @@ func (c *Command) Run(ctx context.Context) error {
 	// Create resizer instance
 	imgResizer := resizer.New()
 
-	// Create application instance
-	app := ocr.NewApp(ocrClient, repo, imgResizer, &ocr.AppConfig{
+	// Start the loading spinner
+	c.spinner.Start("Processing images...")
+
+	// Create application instance (spinner implements ProgressUpdater)
+	app := ocr.NewApp(ocrClient, repo, imgResizer, c.spinner, &ocr.AppConfig{
 		Concurrency: cfg.Concurrency,
 		StartDate:   cfg.StartDate,
 	})
-
-	// Start the loading spinner\
-	c.spinner.Start("Processing images...")
 
 	// Process images
 	results, err := app.ProcessImages(ctx)

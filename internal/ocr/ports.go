@@ -34,6 +34,12 @@ type Resizer interface {
 	ResizeImage(imageData []byte, maxDimension int) ([]byte, error)
 }
 
+// ProgressUpdater defines the interface for updating progress during image processing
+type ProgressUpdater interface {
+	// UpdateProgress is called after each image is processed with the current count and total
+	UpdateProgress(completed, total int)
+}
+
 // OCRResult represents the result of processing a single image
 type OCRResult struct {
 	ImageName   string

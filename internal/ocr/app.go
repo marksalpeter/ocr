@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync/atomic"
 )
 
 // AppConfig contains only the configuration parameters needed by the app
@@ -28,19 +29,21 @@ func (r ProcessImageResults) String() string {
 
 // App represents the main application logic
 type App struct {
-	ocrClient OCRClient
-	repo      Repository
-	resizer   Resizer
-	config    *AppConfig
+	ocrClient       OCRClient
+	repo            Repository
+	resizer         Resizer
+	progressUpdater ProgressUpdater
+	config          *AppConfig
 }
 
 // NewApp creates a new App instance with the given configuration
-func NewApp(ocrClient OCRClient, repo Repository, resizer Resizer, config *AppConfig) *App {
+func NewApp(ocrClient OCRClient, repo Repository, resizer Resizer, progressUpdater ProgressUpdater, config *AppConfig) *App {
 	return &App{
-		ocrClient: ocrClient,
-		repo:      repo,
-		resizer:   resizer,
-		config:    config,
+		ocrClient:       ocrClient,
+		repo:            repo,
+		resizer:         resizer,
+		progressUpdater: progressUpdater,
+		config:          config,
 	}
 }
 
@@ -97,6 +100,8 @@ func (a *App) processImagesParallel(ctx context.Context, imageNames []string) []
 
 	// Pre-allocate results slice
 	results := make([]OCRResult, len(imageNames))
+	total := len(imageNames)
+	var completed int64
 
 	// Semaphore to limit concurrency
 	sem := make(chan struct{}, concurrency)
@@ -115,6 +120,13 @@ func (a *App) processImagesParallel(ctx context.Context, imageNames []string) []
 		go func(idx int, name string) {
 			// Process image and write directly to results at index
 			results[idx] = a.processImage(ctx, name)
+
+			// Update progress after processing
+			if a.progressUpdater != nil {
+				current := int(atomic.AddInt64(&completed, 1))
+				a.progressUpdater.UpdateProgress(current, total)
+			}
+
 			<-sem
 		}(i, imageName)
 	}
