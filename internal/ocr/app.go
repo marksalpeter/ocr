@@ -38,6 +38,11 @@ func NewApp(ocrClient OCRClient, repo Repository, config *AppConfig) *App {
 
 // ProcessImages processes all images in the specified directory
 func (a *App) ProcessImages(ctx context.Context) (*ProcessImageResults, error) {
+	// Validate API key
+	if err := a.ocrClient.ValidateAPIKey(ctx); err != nil {
+		return nil, fmt.Errorf("invalid api key: %w", err)
+	}
+
 	// Get image names (uses repository's base directory)
 	imageNames, err := a.repo.GetImageNames()
 	if err != nil {
