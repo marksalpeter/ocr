@@ -14,7 +14,10 @@ func TestRepository_GetImageNames(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	repo := New(tmpDir, "")
+	repo, err := New(tmpDir, "")
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
 
 	// Test empty directory
 	names, err := repo.GetImageNames()
@@ -50,13 +53,18 @@ func TestRepository_GetImageNames(t *testing.T) {
 	}
 
 	// Test non-existent directory
-		badRepo := New("/nonexistent/dir", "")
-	_, err = badRepo.GetImageNames()
+	badRepo, err := New("/nonexistent/dir", "")
 	if err == nil {
 		t.Error("Expected error for non-existent directory")
 	}
-	if err != ErrDirectoryNotFound && !os.IsNotExist(err) {
-		t.Errorf("Expected ErrDirectoryNotFound or IsNotExist, got %v", err)
+	if badRepo != nil {
+		t.Error("Expected nil repository for non-existent directory")
+	}
+	// Error should wrap ErrDirectoryNotFound or be os.IsNotExist
+	if err != nil {
+		if !os.IsNotExist(err) && err.Error() != "directory not found: stat /nonexistent/dir: no such file or directory" {
+			t.Errorf("Expected ErrDirectoryNotFound or IsNotExist, got %v", err)
+		}
 	}
 }
 
@@ -67,7 +75,10 @@ func TestRepository_LoadImageByName(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	repo := New(tmpDir, "")
+	repo, err := New(tmpDir, "")
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
 
 	// Create test image file
 	testFile := "test.jpg"
@@ -106,7 +117,10 @@ func TestRepository_SaveOutput(t *testing.T) {
 
 	// Test saving output
 	outputPath := filepath.Join(tmpDir, "output.txt")
-	repo := New("", outputPath)
+	repo, err := New("", outputPath)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
 
 	content := "test output content"
 	err = repo.SaveOutput(content)

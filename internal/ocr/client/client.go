@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -118,11 +119,15 @@ func (c *Client) ocrImageOnce(ctx context.Context, imageData []byte) (text strin
 		Model: "gpt-4o", // Using gpt-4o which supports vision
 		Messages: []openai.ChatCompletionMessage{
 			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: "You are an OCR (Optical Character Recognition) system. Your task is to transcribe all visible text from images. This is a technical transcription task for digitizing written documents. Transcribe all text exactly as it appears, including handwritten text, printed text, and any dates.",
+			},
+			{
 				Role: openai.ChatMessageRoleUser,
 				MultiContent: []openai.ChatMessagePart{
 					{
 						Type: openai.ChatMessagePartTypeText,
-						Text: "Please transcribe all text from this image exactly as it appears, preserving all line breaks, punctuation, spacing, and wording. If there is a date at the top of the page, include it. Otherwise, just transcribe the text.",
+						Text: "This is an image of a document page. Please transcribe all text visible in this image exactly as it appears, preserving all line breaks, punctuation, spacing, and wording. Include handwritten text, printed text, and any dates. Transcribe everything you can see.",
 					},
 					{
 						Type: openai.ChatMessagePartTypeImageURL,
@@ -154,6 +159,11 @@ func (c *Client) ocrImageOnce(ctx context.Context, imageData []byte) (text strin
 
 	text = resp.Choices[0].Message.Content
 
+	// Check if GPT refused to process the image
+	if c.isRefusalResponse(text) {
+		return "", cost, fmt.Errorf("%w: GPT refused to process image (content policy or other refusal)", ErrAPIRequestFailed)
+	}
+
 	// Calculate cost based on GPT-4 Vision pricing
 	// Input: $0.01 per 1K tokens, Output: $0.03 per 1K tokens
 	// For simplicity, we'll use a rough estimate based on response tokens
@@ -164,3 +174,23 @@ func (c *Client) ocrImageOnce(ctx context.Context, imageData []byte) (text strin
 	return text, cost, nil
 }
 
+// isRefusalResponse checks if the response indicates GPT refused to process the image
+func (c *Client) isRefusalResponse(text string) bool {
+	refusalPatterns := []string{
+		"I'm sorry, I can't assist",
+		"I can't assist with that",
+		"I cannot assist",
+		"I'm unable to assist",
+		"I cannot help",
+		"content policy",
+		"against my usage policies",
+		"inappropriate content",
+	}
+	textLower := strings.ToLower(text)
+	for _, pattern := range refusalPatterns {
+		if strings.Contains(textLower, strings.ToLower(pattern)) {
+			return true
+		}
+	}
+	return false
+}
