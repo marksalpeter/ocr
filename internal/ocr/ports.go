@@ -5,6 +5,8 @@ import (
 )
 
 // OCRClient defines the interface for OCR operations
+//
+//go:generate go run github.com/vektra/mockery/v2 --name OCRClient
 type OCRClient interface {
 	// OCRImage processes an image and returns the transcribed text and total cost from all attempts
 	OCRImage(ctx context.Context, imageData []byte) (text string, cost float64, err error)
@@ -13,6 +15,8 @@ type OCRClient interface {
 }
 
 // Repository defines the interface for file operations
+//
+//go:generate go run github.com/vektra/mockery/v2 --name Repository
 type Repository interface {
 	// GetImageNames returns sorted image filenames from the repository's base directory
 	GetImageNames() ([]string, error)

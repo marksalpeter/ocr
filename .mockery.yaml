@@ -1,11 +1,4 @@
 with-expecter: true
-packages:
-  github.com/marksalpeter/ocr/internal/ocr:
-    interfaces:
-      OCRClient:
-        filename: mock_OCRClient.go
-        dir: internal/ocr
-      Repository:
-        filename: mock_Repository.go
-        dir: internal/ocr
-
+inpackage: true
+testonly: true
+mockname: "Mock{{.InterfaceName}}"
