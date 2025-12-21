@@ -8,8 +8,8 @@ import (
 //
 //go:generate go run github.com/vektra/mockery/v2 --name OCRClient
 type OCRClient interface {
-	// OCRImage processes an image and returns the transcribed text and total cost from all attempts
-	OCRImage(ctx context.Context, imageData []byte) (text string, cost float64, err error)
+	// OCRImage processes an image and returns the transcribed text, total cost from all attempts, and the number of attempts made
+	OCRImage(ctx context.Context, imageData []byte) (text string, cost float64, attempts int, err error)
 	// ValidateAPIKey validates the OpenAI API key
 	ValidateAPIKey(ctx context.Context) error
 }
@@ -36,9 +36,10 @@ type Resizer interface {
 
 // OCRResult represents the result of processing a single image
 type OCRResult struct {
-	ImageName string
-	Date      string
-	Text      string
-	Cost      float64
-	Error     error
+	ImageName   string
+	Date        string
+	Text        string
+	Cost        float64
+	OCRAttempts int
+	Error       error
 }

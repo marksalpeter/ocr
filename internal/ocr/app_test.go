@@ -42,8 +42,8 @@ func TestApp_ProcessImages(t *testing.T) {
 
 		// Setup OCR client mocks
 		mockClient.On("ValidateAPIKey", mock.Anything).Return(nil)
-		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Monday, January 1, 2024\nTest text 1", 0.01, nil)
-		mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.01, nil)
+		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Monday, January 1, 2024\nTest text 1", 0.01, 1, nil)
+		mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.01, 1, nil)
 
 		// Create app config
 		config := &AppConfig{
@@ -58,6 +58,9 @@ func TestApp_ProcessImages(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, results)
 		assert.Equal(t, 2, results.TotalImagesProcessed)
+		// Verify attempt tracking: both images had 1 attempt each = 2 total
+		assert.Equal(t, 2, results.TotalOCRAttempts)
+		assert.InDelta(t, 1.0, results.OCRAttemptsPerImage, 0.0001)
 
 		// Verify all mocks were called
 		mockRepo.AssertExpectations(t)
@@ -251,10 +254,10 @@ func TestApp_ProcessImages_Results(t *testing.T) {
 	mockResizer.On("ResizeImage", []byte("image1"), 1500).Return([]byte("image1"), nil)
 	mockResizer.On("ResizeImage", []byte("image2"), 1500).Return([]byte("image2"), nil)
 
-		// Setup OCR client mocks with different costs
-		mockClient.On("ValidateAPIKey", mock.Anything).Return(nil)
-		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Test text 1", 0.10, nil)
-		mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.20, nil)
+	// Setup OCR client mocks with different costs
+	mockClient.On("ValidateAPIKey", mock.Anything).Return(nil)
+	mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Test text 1", 0.10, 1, nil)
+	mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.20, 2, nil)
 
 	// Create app config
 	config := &AppConfig{
@@ -271,6 +274,9 @@ func TestApp_ProcessImages_Results(t *testing.T) {
 	assert.Equal(t, 2, results.TotalImagesProcessed)
 	assert.InDelta(t, 0.30, results.TotalCost, 0.0001)
 	assert.InDelta(t, 0.15, results.CostPerImage, 0.0001)
+	// Verify attempt tracking: image1 had 1 attempt, image2 had 2 attempts = 3 total
+	assert.Equal(t, 3, results.TotalOCRAttempts)
+	assert.InDelta(t, 1.5, results.OCRAttemptsPerImage, 0.0001)
 
 	mockRepo.AssertExpectations(t)
 	mockClient.AssertExpectations(t)

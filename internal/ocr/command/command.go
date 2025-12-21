@@ -2,7 +2,6 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/charmbracelet/log"
@@ -75,11 +74,7 @@ func (c *Command) Run(ctx context.Context) error {
 	c.spinner.Stop()
 
 	// Display results
-	c.logger.Info("Processing completed",
-		"totalImages", results.TotalImagesProcessed,
-		"totalCost", fmt.Sprintf("$%.4f", results.TotalCost),
-		"costPerImage", fmt.Sprintf("$%.4f", results.CostPerImage),
-		"outputFile", cfg.OutputFile)
+	c.logger.Info("✅ Processing completed", "results", results)
 
 	return nil
 }

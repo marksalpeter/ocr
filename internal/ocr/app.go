@@ -18,6 +18,12 @@ type ProcessImageResults struct {
 	TotalImagesProcessed int
 	TotalCost            float64
 	CostPerImage         float64
+	TotalOCRAttempts     int
+	OCRAttemptsPerImage  float64
+}
+
+func (r ProcessImageResults) String() string {
+	return fmt.Sprintf("total images processed: %d\ntotal cost:             $%.3f\ncost per image:         $%.3f\ntotal ocr attempts:     %d\nocr attempts per image: %.2f\n", r.TotalImagesProcessed, r.TotalCost, r.CostPerImage, r.TotalOCRAttempts, r.OCRAttemptsPerImage)
 }
 
 // App represents the main application logic
@@ -64,10 +70,12 @@ func (a *App) ProcessImages(ctx context.Context) (*ProcessImageResults, error) {
 		return nil, fmt.Errorf("%w: %v", ErrProcessingFailed, err)
 	}
 
-	// Calculate total cost
+	// Calculate total cost and total attempts
 	var totalCost float64
+	var totalAttempts int
 	for _, result := range results {
 		totalCost += result.Cost
+		totalAttempts += result.OCRAttempts
 	}
 
 	// Return results
@@ -75,6 +83,8 @@ func (a *App) ProcessImages(ctx context.Context) (*ProcessImageResults, error) {
 		TotalImagesProcessed: len(results),
 		TotalCost:            totalCost,
 		CostPerImage:         totalCost / float64(len(results)),
+		TotalOCRAttempts:     totalAttempts,
+		OCRAttemptsPerImage:  float64(totalAttempts) / float64(len(results)),
 	}, nil
 }
 
@@ -138,7 +148,7 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 	}
 
 	// Perform OCR
-	text, cost, err := a.ocrClient.OCRImage(ctx, imageData)
+	text, cost, attempts, err := a.ocrClient.OCRImage(ctx, imageData)
 	if err != nil {
 		result.Error = err
 		return result
@@ -148,6 +158,7 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 	result.Date = extractDate(text)
 	result.Text = text
 	result.Cost = cost
+	result.OCRAttempts = attempts
 	return result
 }
 

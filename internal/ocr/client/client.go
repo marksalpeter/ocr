@@ -78,19 +78,21 @@ func (c *Client) ValidateAPIKey(ctx context.Context) error {
 	return nil
 }
 
-// OCRImage processes an image and returns the transcribed text and total cost from all attempts
-func (c *Client) OCRImage(ctx context.Context, imageData []byte) (text string, totalCost float64, err error) {
+// OCRImage processes an image and returns the transcribed text, total cost from all attempts, and the number of attempts made
+func (c *Client) OCRImage(ctx context.Context, imageData []byte) (text string, totalCost float64, attempts int, err error) {
 	maxRetries := 5
 	var lastErr error
 	totalCost = 0
+	attempts = 0
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
+		attempts++
 		if attempt > 0 {
 			// Exponential backoff capped at 50ms
 			backoff := max(time.Duration(1<<uint(attempt-1))*time.Millisecond, 10*time.Millisecond)
 			select {
 			case <-ctx.Done():
-				return "", totalCost, ctx.Err()
+				return "", totalCost, attempts, ctx.Err()
 			case <-time.After(backoff):
 			}
 		}
@@ -98,17 +100,17 @@ func (c *Client) OCRImage(ctx context.Context, imageData []byte) (text string, t
 		text, cost, err := c.ocrImageOnce(ctx, imageData)
 		totalCost += cost // Accumulate cost from all attempts
 		if err == nil {
-			return text, totalCost, nil
+			return text, totalCost, attempts, nil
 		}
 
 		lastErr = err
 		// Don't retry on authentication errors
 		if apiErr, ok := err.(*APIError); ok && apiErr.Status == http.StatusUnauthorized {
-			return "", totalCost, err
+			return "", totalCost, attempts, err
 		}
 	}
 
-	return "", totalCost, fmt.Errorf("%w: %v", ErrMaxRetriesExceeded, lastErr)
+	return "", totalCost, attempts, fmt.Errorf("%w: %v", ErrMaxRetriesExceeded, lastErr)
 }
 
 // ocrImageOnce performs a single OCR request

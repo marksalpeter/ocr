@@ -47,7 +47,7 @@ func TestClient_OCRImage_ErrorCase(t *testing.T) {
 		0x44, 0xAE, 0x42, 0x60, 0x82,
 	}
 
-	text, cost, err := c.OCRImage(ctx, testImageData)
+	text, cost, attempts, err := c.OCRImage(ctx, testImageData)
 
 	// The test key doesn't have permission for vision API, so we expect an error
 	if err == nil {
@@ -62,6 +62,11 @@ func TestClient_OCRImage_ErrorCase(t *testing.T) {
 	// Cost should be 0 or positive (may have attempted retries)
 	if cost < 0 {
 		t.Errorf("Expected non-negative cost, got: %f", cost)
+	}
+
+	// Should have made at least one attempt
+	if attempts < 1 {
+		t.Errorf("Expected at least 1 attempt, got: %d", attempts)
 	}
 
 	// Verify it's an API error
