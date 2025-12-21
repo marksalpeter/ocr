@@ -41,7 +41,11 @@ func (c *Command) Run(ctx context.Context) error {
 	}
 
 	// Create repository with the input directory and output file from config
-	repo := repository.New(cfg.InputDir, cfg.OutputFile)
+	repo, err := repository.New(cfg.InputDir, cfg.OutputFile)
+	if err != nil {
+		c.logger.Error("Error creating repository", "error", err)
+		return err
+	}
 
 	// Create the OCR client with the API key from config
 	ocrClient := client.New(cfg.APIKey)

@@ -17,15 +17,29 @@ type Repository struct {
 
 // New creates a new Repository instance with the specified base directory and output path.
 // If baseDir is empty, it defaults to the current working directory.
-func New(baseDir, outputPath string) *Repository {
+// If outputPath is relative, it will be joined with baseDir.
+func New(baseDir, outputPath string) (*Repository, error) {
 	if baseDir == "" {
 		wd, _ := os.Getwd()
 		baseDir = wd
 	}
+
+	// If output path is relative, join it with the base directory
+	if !filepath.IsAbs(outputPath) {
+		outputPath = filepath.Join(baseDir, outputPath)
+	}
+
+	// Check if image directory exists
+	if info, err := os.Stat(baseDir); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrDirectoryNotFound, err)
+	} else if !info.IsDir() {
+		return nil, fmt.Errorf("%w: path is not a directory", ErrDirectoryNotFound)
+	}
+
 	return &Repository{
 		baseDir:    baseDir,
 		outputPath: outputPath,
-	}
+	}, nil
 }
 
 var (
@@ -39,18 +53,6 @@ var (
 
 // GetImageNames returns sorted image filenames from the repository's base directory.
 func (r *Repository) GetImageNames() ([]string, error) {
-	// Check if directory exists
-	info, err := os.Stat(r.baseDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, ErrDirectoryNotFound
-		}
-		return nil, fmt.Errorf("%w: %v", ErrDirectoryNotFound, err)
-	}
-	if !info.IsDir() {
-		return nil, fmt.Errorf("%w: path is not a directory", ErrDirectoryNotFound)
-	}
-
 	var imageNames []string
 	imageExts := map[string]bool{
 		".jpg":  true,
@@ -61,7 +63,7 @@ func (r *Repository) GetImageNames() ([]string, error) {
 		".webp": true,
 	}
 
-	err = filepath.WalkDir(r.baseDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(r.baseDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
