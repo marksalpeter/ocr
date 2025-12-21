@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
-	"sync"
 )
 
 // AppConfig contains only the configuration parameters needed by the app
@@ -44,18 +42,12 @@ func (a *App) ProcessImages(ctx context.Context) (*ProcessImageResults, error) {
 	imageNames, err := a.repo.GetImageNames()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrNoImagesFound, err)
-	}
-	if len(imageNames) == 0 {
+	} else if len(imageNames) == 0 {
 		return nil, ErrNoImagesFound
 	}
 
 	// Process images in parallel
 	results := a.processImagesParallel(ctx, imageNames)
-
-	// Sort results by image name to maintain order
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].ImageName < results[j].ImageName
-	})
 
 	// Format and concatenate output
 	output := a.formatOutput(results, a.config.StartDate)
@@ -65,22 +57,17 @@ func (a *App) ProcessImages(ctx context.Context) (*ProcessImageResults, error) {
 		return nil, fmt.Errorf("%w: %v", ErrProcessingFailed, err)
 	}
 
-	// Calculate totals
-	totalImages := len(results)
+	// Calculate total cost
 	var totalCost float64
 	for _, result := range results {
 		totalCost += result.Cost
 	}
 
-	var costPerImage float64
-	if totalImages > 0 {
-		costPerImage = totalCost / float64(totalImages)
-	}
-
+	// Return results
 	return &ProcessImageResults{
-		TotalImagesProcessed: totalImages,
+		TotalImagesProcessed: len(results),
 		TotalCost:            totalCost,
-		CostPerImage:         costPerImage,
+		CostPerImage:         totalCost / float64(len(results)),
 	}, nil
 }
 
@@ -91,77 +78,62 @@ func (a *App) processImagesParallel(ctx context.Context, imageNames []string) []
 		concurrency = 10
 	}
 
-	// Create channels for work and results
-	jobs := make(chan string, len(imageNames))
-	results := make(chan OCRResult, len(imageNames))
+	// Pre-allocate results slice
+	results := make([]OCRResult, len(imageNames))
 
-	// Start workers
-	var wg sync.WaitGroup
-	for i := 0; i < concurrency; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for imageName := range jobs {
-				result := a.processImage(ctx, imageName)
-				results <- result
-			}
-		}()
-	}
+	// Semaphore to limit concurrency
+	sem := make(chan struct{}, concurrency)
+	defer close(sem)
 
-	// Send jobs
-	go func() {
-		defer close(jobs)
-		for _, name := range imageNames {
-			select {
-			case <-ctx.Done():
-				return
-			case jobs <- name:
-			}
+	// Process each image
+	for i, imageName := range imageNames {
+		// Check if context is cancelled
+		select {
+		case <-ctx.Done():
+			return results
+		default:
 		}
-	}()
 
-	// Wait for all workers to finish
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	// Collect results
-	var allResults []OCRResult
-	for result := range results {
-		allResults = append(allResults, result)
+		sem <- struct{}{}
+		go func(idx int, name string) {
+			// Process image and write directly to results at index
+			results[idx] = a.processImage(ctx, name)
+			<-sem
+		}(i, imageName)
 	}
 
-	return allResults
+	// Wait for all goroutines to complete
+	for range cap(sem) {
+		sem <- struct{}{}
+	}
+
+	return results
 }
 
 // processImage processes a single image
 func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
-	result := OCRResult{
-		ImageName: imageName,
-	}
+
+	var result OCRResult
+	result.ImageName = imageName
 
 	// Load image (uses repository's base directory)
 	imageData, err := a.repo.LoadImageByName(imageName)
 	if err != nil {
-		result.Text = fmt.Sprintf("Error loading image: %v", err)
+		result.Error = err
 		return result
 	}
 
 	// Perform OCR
 	text, cost, err := a.ocrClient.OCRImage(ctx, imageData)
 	if err != nil {
-		result.Text = fmt.Sprintf("Error processing image: %v", err)
+		result.Error = err
 		return result
 	}
 
+	// Return the result
+	result.Date = extractDate(text)
 	result.Text = text
 	result.Cost = cost
-
-	// Extract date from text (look at first few lines)
-	date := extractDate(text)
-	result.Date = date
-
 	return result
 }
 
@@ -202,6 +174,13 @@ func (a *App) formatOutput(results []OCRResult, startDate string) string {
 		// Image name
 		builder.WriteString(result.ImageName)
 		builder.WriteString("\n")
+
+		if result.Error != nil {
+			builder.WriteString("Error: ")
+			builder.WriteString(result.Error.Error())
+			builder.WriteString("\n")
+			continue
+		}
 
 		// Date (use extracted date or carry forward)
 		date := result.Date

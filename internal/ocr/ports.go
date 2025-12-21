@@ -32,4 +32,5 @@ type OCRResult struct {
 	Date      string
 	Text      string
 	Cost      float64
+	Error     error
 }
