@@ -24,14 +24,16 @@ type ProcessImageResults struct {
 type App struct {
 	ocrClient OCRClient
 	repo      Repository
+	resizer   Resizer
 	config    *AppConfig
 }
 
 // NewApp creates a new App instance with the given configuration
-func NewApp(ocrClient OCRClient, repo Repository, config *AppConfig) *App {
+func NewApp(ocrClient OCRClient, repo Repository, resizer Resizer, config *AppConfig) *App {
 	return &App{
 		ocrClient: ocrClient,
 		repo:      repo,
+		resizer:   resizer,
 		config:    config,
 	}
 }
@@ -123,6 +125,13 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 
 	// Load image (uses repository's base directory)
 	imageData, err := a.repo.LoadImageByName(imageName)
+	if err != nil {
+		result.Error = err
+		return result
+	}
+
+	// Resize if needed (max 1500px on longest side)
+	imageData, err = a.resizer.ResizeImage(imageData, 1500)
 	if err != nil {
 		result.Error = err
 		return result

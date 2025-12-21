@@ -26,6 +26,14 @@ type Repository interface {
 	SaveOutput(content string) error
 }
 
+// Resizer defines the interface for image resizing operations
+//
+//go:generate go run github.com/vektra/mockery/v2 --name Resizer
+type Resizer interface {
+	// ResizeImage resizes an image if its longest dimension exceeds maxDimension, maintaining aspect ratio
+	ResizeImage(imageData []byte, maxDimension int) ([]byte, error)
+}
+
 // OCRResult represents the result of processing a single image
 type OCRResult struct {
 	ImageName string

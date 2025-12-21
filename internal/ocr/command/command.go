@@ -9,6 +9,7 @@ import (
 	"github.com/marksalpeter/ocr/internal/ocr"
 	"github.com/marksalpeter/ocr/internal/ocr/client"
 	"github.com/marksalpeter/ocr/internal/ocr/repository"
+	"github.com/marksalpeter/ocr/internal/ocr/resizer"
 )
 
 // Command represents the command adapter that orchestrates the OCR workflow
@@ -50,8 +51,11 @@ func (c *Command) Run(ctx context.Context) error {
 	// Create the OCR client with the API key from config
 	ocrClient := client.New(cfg.APIKey)
 
+	// Create resizer instance
+	imgResizer := resizer.New()
+
 	// Create application instance
-	app := ocr.NewApp(ocrClient, repo, &ocr.AppConfig{
+	app := ocr.NewApp(ocrClient, repo, imgResizer, &ocr.AppConfig{
 		Concurrency: cfg.Concurrency,
 		StartDate:   cfg.StartDate,
 	})

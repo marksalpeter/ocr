@@ -35,7 +35,13 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockRepo.On("LoadImageByName", "Img-0002.jpg").Return([]byte("image2"), nil)
 		mockRepo.On("SaveOutput", mock.Anything).Return(nil)
 
+		// Setup resizer mock (returns image unchanged for tests)
+		mockResizer := new(MockResizer)
+		mockResizer.On("ResizeImage", []byte("image1"), 1500).Return([]byte("image1"), nil)
+		mockResizer.On("ResizeImage", []byte("image2"), 1500).Return([]byte("image2"), nil)
+
 		// Setup OCR client mocks
+		mockClient.On("ValidateAPIKey", mock.Anything).Return(nil)
 		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Monday, January 1, 2024\nTest text 1", 0.01, nil)
 		mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.01, nil)
 
@@ -46,7 +52,7 @@ func TestApp_ProcessImages(t *testing.T) {
 		}
 
 		// Create app and process
-		app := NewApp(mockClient, mockRepo, config)
+		app := NewApp(mockClient, mockRepo, mockResizer, config)
 
 		results, err := app.ProcessImages(context.Background())
 		assert.NoError(t, err)
@@ -76,11 +82,14 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockClient := new(MockOCRClient)
 
 		mockRepo.On("GetImageNames").Return([]string{}, nil)
+		mockClient.On("ValidateAPIKey", mock.Anything).Return(nil)
+
+		mockResizer := new(MockResizer)
 
 		config := &AppConfig{
 			Concurrency: 2,
 		}
-		app := NewApp(mockClient, mockRepo, config)
+		app := NewApp(mockClient, mockRepo, mockResizer, config)
 
 		_, err = app.ProcessImages(context.Background())
 		assert.Error(t, err)
@@ -94,11 +103,14 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockClient := new(MockOCRClient)
 
 		mockRepo.On("GetImageNames").Return(nil, os.ErrNotExist)
+		mockClient.On("ValidateAPIKey", mock.Anything).Return(nil)
+
+		mockResizer := new(MockResizer)
 
 		config := &AppConfig{
 			Concurrency: 2,
 		}
-		app := NewApp(mockClient, mockRepo, config)
+		app := NewApp(mockClient, mockRepo, mockResizer, config)
 
 		_, err := app.ProcessImages(context.Background())
 		assert.Error(t, err)
@@ -108,7 +120,8 @@ func TestApp_ProcessImages(t *testing.T) {
 }
 
 func TestApp_formatOutput(t *testing.T) {
-	app := NewApp(nil, nil, &AppConfig{})
+	mockResizer := new(MockResizer)
+	app := NewApp(nil, nil, mockResizer, &AppConfig{})
 
 	results := []OCRResult{
 		{
@@ -147,7 +160,8 @@ Third page text
 }
 
 func TestApp_formatOutput_WithStartDate(t *testing.T) {
-	app := NewApp(nil, nil, &AppConfig{})
+	mockResizer := new(MockResizer)
+	app := NewApp(nil, nil, mockResizer, &AppConfig{})
 
 	results := []OCRResult{
 		{
@@ -232,9 +246,15 @@ func TestApp_ProcessImages_Results(t *testing.T) {
 	mockRepo.On("LoadImageByName", "Img-0002.jpg").Return([]byte("image2"), nil)
 	mockRepo.On("SaveOutput", mock.Anything).Return(nil)
 
-	// Setup OCR client mocks with different costs
-	mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Test text 1", 0.10, nil)
-	mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.20, nil)
+	// Setup resizer mock (returns image unchanged for tests)
+	mockResizer := new(MockResizer)
+	mockResizer.On("ResizeImage", []byte("image1"), 1500).Return([]byte("image1"), nil)
+	mockResizer.On("ResizeImage", []byte("image2"), 1500).Return([]byte("image2"), nil)
+
+		// Setup OCR client mocks with different costs
+		mockClient.On("ValidateAPIKey", mock.Anything).Return(nil)
+		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Test text 1", 0.10, nil)
+		mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.20, nil)
 
 	// Create app config
 	config := &AppConfig{
@@ -243,7 +263,7 @@ func TestApp_ProcessImages_Results(t *testing.T) {
 	}
 
 	// Create app and process
-	app := NewApp(mockClient, mockRepo, config)
+	app := NewApp(mockClient, mockRepo, mockResizer, config)
 
 	results, err := app.ProcessImages(context.Background())
 	assert.NoError(t, err)
