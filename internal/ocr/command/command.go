@@ -56,7 +56,9 @@ func (c *Command) Run(ctx context.Context) error {
 	c.spinner.Start("Processing images...")
 
 	// Process images
-	if err := app.ProcessImages(ctx); err != nil {
+	results, err := app.ProcessImages(ctx)
+	if err != nil {
+		c.spinner.Stop()
 		c.logger.Error("Failed to process images", "error", err)
 		return err
 	}
@@ -65,10 +67,10 @@ func (c *Command) Run(ctx context.Context) error {
 	c.spinner.Stop()
 
 	// Display results
-	totalCost, costPerImage := app.GetCost()
 	c.logger.Info("Processing completed",
-		"totalCost", fmt.Sprintf("$%.4f", totalCost),
-		"costPerImage", fmt.Sprintf("$%.4f", costPerImage),
+		"totalImages", results.TotalImagesProcessed,
+		"totalCost", fmt.Sprintf("$%.4f", results.TotalCost),
+		"costPerImage", fmt.Sprintf("$%.4f", results.CostPerImage),
 		"outputFile", cfg.OutputFile)
 
 	return nil

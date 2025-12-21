@@ -36,8 +36,8 @@ func TestApp_ProcessImages(t *testing.T) {
 		mockRepo.On("SaveOutput", mock.Anything).Return(nil)
 
 		// Setup OCR client mocks
-		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Monday, January 1, 2024\nTest text 1", nil)
-		mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", nil)
+		mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Monday, January 1, 2024\nTest text 1", 0.01, nil)
+		mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.01, nil)
 
 		// Create app config
 		config := &AppConfig{
@@ -48,8 +48,10 @@ func TestApp_ProcessImages(t *testing.T) {
 		// Create app and process
 		app := NewApp(mockClient, mockRepo, config)
 
-		err = app.ProcessImages(context.Background())
+		results, err := app.ProcessImages(context.Background())
 		assert.NoError(t, err)
+		assert.NotNil(t, results)
+		assert.Equal(t, 2, results.TotalImagesProcessed)
 
 		// Verify all mocks were called
 		mockRepo.AssertExpectations(t)
@@ -80,7 +82,7 @@ func TestApp_ProcessImages(t *testing.T) {
 		}
 		app := NewApp(mockClient, mockRepo, config)
 
-		err = app.ProcessImages(context.Background())
+		_, err = app.ProcessImages(context.Background())
 		assert.Error(t, err)
 		assert.Equal(t, ErrNoImagesFound, err)
 
@@ -98,7 +100,7 @@ func TestApp_ProcessImages(t *testing.T) {
 		}
 		app := NewApp(mockClient, mockRepo, config)
 
-		err := app.ProcessImages(context.Background())
+		_, err := app.ProcessImages(context.Background())
 		assert.Error(t, err)
 
 		mockRepo.AssertExpectations(t)
@@ -206,16 +208,50 @@ func TestExtractDate(t *testing.T) {
 	}
 }
 
-func TestApp_GetCost(t *testing.T) {
-	mockClient := new(MockOCRClient)
+func TestApp_ProcessImages_Results(t *testing.T) {
+	// Create temporary directory with test images
+	tmpDir, err := os.MkdirTemp("", "ocr_test_*")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	// Create test image files
+	testFiles := []string{"Img-0001.jpg", "Img-0002.jpg"}
+	for _, f := range testFiles {
+		path := filepath.Join(tmpDir, f)
+		err := os.WriteFile(path, []byte("test image"), 0644)
+		assert.NoError(t, err)
+	}
+
+	// Create mocks
 	mockRepo := new(MockRepository)
+	mockClient := new(MockOCRClient)
 
-	mockClient.On("GetCost").Return(0.50, 0.10)
+	// Setup repository mocks
+	mockRepo.On("GetImageNames").Return(testFiles, nil)
+	mockRepo.On("LoadImageByName", "Img-0001.jpg").Return([]byte("image1"), nil)
+	mockRepo.On("LoadImageByName", "Img-0002.jpg").Return([]byte("image2"), nil)
+	mockRepo.On("SaveOutput", mock.Anything).Return(nil)
 
-	app := NewApp(mockClient, mockRepo, &AppConfig{})
-	total, perImage := app.GetCost()
+	// Setup OCR client mocks with different costs
+	mockClient.On("OCRImage", mock.Anything, []byte("image1")).Return("Test text 1", 0.10, nil)
+	mockClient.On("OCRImage", mock.Anything, []byte("image2")).Return("Test text 2", 0.20, nil)
 
-	assert.Equal(t, 0.50, total)
-	assert.Equal(t, 0.10, perImage)
+	// Create app config
+	config := &AppConfig{
+		Concurrency: 2,
+		StartDate:   "",
+	}
+
+	// Create app and process
+	app := NewApp(mockClient, mockRepo, config)
+
+	results, err := app.ProcessImages(context.Background())
+	assert.NoError(t, err)
+	assert.NotNil(t, results)
+	assert.Equal(t, 2, results.TotalImagesProcessed)
+	assert.InDelta(t, 0.30, results.TotalCost, 0.0001)
+	assert.InDelta(t, 0.15, results.CostPerImage, 0.0001)
+
+	mockRepo.AssertExpectations(t)
 	mockClient.AssertExpectations(t)
 }

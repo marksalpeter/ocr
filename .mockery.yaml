@@ -8,7 +8,4 @@ packages:
       Repository:
         filename: mock_Repository.go
         dir: internal/ocr
-      ConfigCollector:
-        filename: mock_ConfigCollector.go
-        dir: internal/ocr
 

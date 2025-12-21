@@ -6,12 +6,10 @@ import (
 
 // OCRClient defines the interface for OCR operations
 type OCRClient interface {
-	// OCRImage processes an image and returns the transcribed text
-	OCRImage(ctx context.Context, imageData []byte) (text string, err error)
+	// OCRImage processes an image and returns the transcribed text and total cost from all attempts
+	OCRImage(ctx context.Context, imageData []byte) (text string, cost float64, err error)
 	// ValidateAPIKey validates the OpenAI API key
 	ValidateAPIKey(ctx context.Context) error
-	// GetCost returns the total cost and cost per image
-	GetCost() (totalCost float64, costPerImage float64)
 }
 
 // Repository defines the interface for file operations

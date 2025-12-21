@@ -8,18 +8,6 @@ import (
 
 var testKey = os.Getenv("OPENAI_API_KEY")
 
-func TestClient_GetCost(t *testing.T) {
-	c := New("test-key")
-
-	total, perImage := c.GetCost()
-	if total != 0 {
-		t.Errorf("Expected total cost 0, got %f", total)
-	}
-	if perImage != 0 {
-		t.Errorf("Expected cost per image 0, got %f", perImage)
-	}
-}
-
 func TestAPIError_Error(t *testing.T) {
 	err := &APIError{
 		Status:  404,
@@ -59,7 +47,7 @@ func TestClient_OCRImage_ErrorCase(t *testing.T) {
 		0x44, 0xAE, 0x42, 0x60, 0x82,
 	}
 
-	text, err := c.OCRImage(ctx, testImageData)
+	text, cost, err := c.OCRImage(ctx, testImageData)
 
 	// The test key doesn't have permission for vision API, so we expect an error
 	if err == nil {
@@ -69,6 +57,11 @@ func TestClient_OCRImage_ErrorCase(t *testing.T) {
 	// Text should be empty on error
 	if text != "" {
 		t.Errorf("Expected empty text on error, got: %s", text)
+	}
+
+	// Cost should be 0 or positive (may have attempted retries)
+	if cost < 0 {
+		t.Errorf("Expected non-negative cost, got: %f", cost)
 	}
 
 	// Verify it's an API error

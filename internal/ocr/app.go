@@ -15,6 +15,13 @@ type AppConfig struct {
 	StartDate   string
 }
 
+// ProcessImageResults contains the results of processing images
+type ProcessImageResults struct {
+	TotalImagesProcessed int
+	TotalCost            float64
+	CostPerImage         float64
+}
+
 // App represents the main application logic
 type App struct {
 	ocrClient OCRClient
@@ -32,14 +39,14 @@ func NewApp(ocrClient OCRClient, repo Repository, config *AppConfig) *App {
 }
 
 // ProcessImages processes all images in the specified directory
-func (a *App) ProcessImages(ctx context.Context) error {
+func (a *App) ProcessImages(ctx context.Context) (*ProcessImageResults, error) {
 	// Get image names (uses repository's base directory)
 	imageNames, err := a.repo.GetImageNames()
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrNoImagesFound, err)
+		return nil, fmt.Errorf("%w: %v", ErrNoImagesFound, err)
 	}
 	if len(imageNames) == 0 {
-		return ErrNoImagesFound
+		return nil, ErrNoImagesFound
 	}
 
 	// Process images in parallel
@@ -55,10 +62,26 @@ func (a *App) ProcessImages(ctx context.Context) error {
 
 	// Save output
 	if err := a.repo.SaveOutput(output); err != nil {
-		return fmt.Errorf("%w: %v", ErrProcessingFailed, err)
+		return nil, fmt.Errorf("%w: %v", ErrProcessingFailed, err)
 	}
 
-	return nil
+	// Calculate totals
+	totalImages := len(results)
+	var totalCost float64
+	for _, result := range results {
+		totalCost += result.Cost
+	}
+
+	var costPerImage float64
+	if totalImages > 0 {
+		costPerImage = totalCost / float64(totalImages)
+	}
+
+	return &ProcessImageResults{
+		TotalImagesProcessed: totalImages,
+		TotalCost:            totalCost,
+		CostPerImage:         costPerImage,
+	}, nil
 }
 
 // processImagesParallel processes images in parallel with configurable concurrency
@@ -126,13 +149,14 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 	}
 
 	// Perform OCR
-	text, err := a.ocrClient.OCRImage(ctx, imageData)
+	text, cost, err := a.ocrClient.OCRImage(ctx, imageData)
 	if err != nil {
 		result.Text = fmt.Sprintf("Error processing image: %v", err)
 		return result
 	}
 
 	result.Text = text
+	result.Cost = cost
 
 	// Extract date from text (look at first few lines)
 	date := extractDate(text)
@@ -197,9 +221,4 @@ func (a *App) formatOutput(results []OCRResult, startDate string) string {
 	}
 
 	return builder.String()
-}
-
-// GetCost returns the total cost and cost per image from the OCR client
-func (a *App) GetCost() (totalCost float64, costPerImage float64) {
-	return a.ocrClient.GetCost()
 }

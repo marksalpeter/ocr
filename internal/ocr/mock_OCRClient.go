@@ -21,63 +21,8 @@ func (_m *MockOCRClient) EXPECT() *MockOCRClient_Expecter {
 	return &MockOCRClient_Expecter{mock: &_m.Mock}
 }
 
-// GetCost provides a mock function with no fields
-func (_m *MockOCRClient) GetCost() (float64, float64) {
-	ret := _m.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetCost")
-	}
-
-	var r0 float64
-	var r1 float64
-	if rf, ok := ret.Get(0).(func() (float64, float64)); ok {
-		return rf()
-	}
-	if rf, ok := ret.Get(0).(func() float64); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(float64)
-	}
-
-	if rf, ok := ret.Get(1).(func() float64); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Get(1).(float64)
-	}
-
-	return r0, r1
-}
-
-// MockOCRClient_GetCost_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetCost'
-type MockOCRClient_GetCost_Call struct {
-	*mock.Call
-}
-
-// GetCost is a helper method to define mock.On call
-func (_e *MockOCRClient_Expecter) GetCost() *MockOCRClient_GetCost_Call {
-	return &MockOCRClient_GetCost_Call{Call: _e.mock.On("GetCost")}
-}
-
-func (_c *MockOCRClient_GetCost_Call) Run(run func()) *MockOCRClient_GetCost_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockOCRClient_GetCost_Call) Return(totalCost float64, costPerImage float64) *MockOCRClient_GetCost_Call {
-	_c.Call.Return(totalCost, costPerImage)
-	return _c
-}
-
-func (_c *MockOCRClient_GetCost_Call) RunAndReturn(run func() (float64, float64)) *MockOCRClient_GetCost_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // OCRImage provides a mock function with given fields: ctx, imageData
-func (_m *MockOCRClient) OCRImage(ctx context.Context, imageData []byte) (string, error) {
+func (_m *MockOCRClient) OCRImage(ctx context.Context, imageData []byte) (string, float64, error) {
 	ret := _m.Called(ctx, imageData)
 
 	if len(ret) == 0 {
@@ -85,8 +30,9 @@ func (_m *MockOCRClient) OCRImage(ctx context.Context, imageData []byte) (string
 	}
 
 	var r0 string
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, []byte) (string, error)); ok {
+	var r1 float64
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, []byte) (string, float64, error)); ok {
 		return rf(ctx, imageData)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, []byte) string); ok {
@@ -95,13 +41,19 @@ func (_m *MockOCRClient) OCRImage(ctx context.Context, imageData []byte) (string
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, []byte) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, []byte) float64); ok {
 		r1 = rf(ctx, imageData)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(float64)
 	}
 
-	return r0, r1
+	if rf, ok := ret.Get(2).(func(context.Context, []byte) error); ok {
+		r2 = rf(ctx, imageData)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // MockOCRClient_OCRImage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OCRImage'
@@ -123,12 +75,12 @@ func (_c *MockOCRClient_OCRImage_Call) Run(run func(ctx context.Context, imageDa
 	return _c
 }
 
-func (_c *MockOCRClient_OCRImage_Call) Return(text string, err error) *MockOCRClient_OCRImage_Call {
-	_c.Call.Return(text, err)
+func (_c *MockOCRClient_OCRImage_Call) Return(text string, cost float64, err error) *MockOCRClient_OCRImage_Call {
+	_c.Call.Return(text, cost, err)
 	return _c
 }
 
-func (_c *MockOCRClient_OCRImage_Call) RunAndReturn(run func(context.Context, []byte) (string, error)) *MockOCRClient_OCRImage_Call {
+func (_c *MockOCRClient_OCRImage_Call) RunAndReturn(run func(context.Context, []byte) (string, float64, error)) *MockOCRClient_OCRImage_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -16,9 +15,6 @@ import (
 type Client struct {
 	apiKey       string
 	openAIClient *openai.Client
-	mu           sync.Mutex
-	totalCost    float64
-	imageCount   int
 }
 
 // APIError represents an error from the API with status code
@@ -79,10 +75,11 @@ func (c *Client) ValidateAPIKey(ctx context.Context) error {
 	return nil
 }
 
-// OCRImage processes an image and returns the transcribed text with retry logic
-func (c *Client) OCRImage(ctx context.Context, imageData []byte) (text string, err error) {
+// OCRImage processes an image and returns the transcribed text and total cost from all attempts
+func (c *Client) OCRImage(ctx context.Context, imageData []byte) (text string, totalCost float64, err error) {
 	maxRetries := 5
 	var lastErr error
+	totalCost = 0
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
@@ -90,28 +87,25 @@ func (c *Client) OCRImage(ctx context.Context, imageData []byte) (text string, e
 			backoff := time.Duration(1<<uint(attempt-1)) * time.Second
 			select {
 			case <-ctx.Done():
-				return "", ctx.Err()
+				return "", totalCost, ctx.Err()
 			case <-time.After(backoff):
 			}
 		}
 
 		text, cost, err := c.ocrImageOnce(ctx, imageData)
+		totalCost += cost // Accumulate cost from all attempts
 		if err == nil {
-			c.mu.Lock()
-			c.totalCost += cost
-			c.imageCount++
-			c.mu.Unlock()
-			return text, nil
+			return text, totalCost, nil
 		}
 
 		lastErr = err
 		// Don't retry on authentication errors
 		if apiErr, ok := err.(*APIError); ok && apiErr.Status == http.StatusUnauthorized {
-			return "", err
+			return "", totalCost, err
 		}
 	}
 
-	return "", fmt.Errorf("%w: %v", ErrMaxRetriesExceeded, lastErr)
+	return "", totalCost, fmt.Errorf("%w: %v", ErrMaxRetriesExceeded, lastErr)
 }
 
 // ocrImageOnce performs a single OCR request
@@ -170,13 +164,3 @@ func (c *Client) ocrImageOnce(ctx context.Context, imageData []byte) (text strin
 	return text, cost, nil
 }
 
-// GetCost returns the total cost and cost per image
-func (c *Client) GetCost() (totalCost float64, costPerImage float64) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.imageCount == 0 {
-		return c.totalCost, 0
-	}
-	return c.totalCost, c.totalCost / float64(c.imageCount)
-}
