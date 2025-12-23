@@ -2,6 +2,7 @@ package ocr
 
 import (
 	"context"
+	"time"
 )
 
 // OCRClient defines the interface for OCR operations
@@ -47,5 +48,6 @@ type OCRResult struct {
 	Text        string
 	Cost        float64
 	OCRAttempts int
+	Duration    time.Duration
 	Error       error
 }

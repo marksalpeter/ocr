@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 // AppConfig contains only the configuration parameters needed by the app
@@ -21,10 +22,14 @@ type ProcessImageResults struct {
 	CostPerImage         float64
 	TotalOCRAttempts     int
 	OCRAttemptsPerImage  float64
+	TotalDuration        time.Duration
+	DurationPerImage     time.Duration
 }
 
 func (r ProcessImageResults) String() string {
-	return fmt.Sprintf("total images processed: %d\ntotal cost:             $%.3f\ncost per image:         $%.3f\ntotal ocr attempts:     %d\nocr attempts per image: %.2f\n", r.TotalImagesProcessed, r.TotalCost, r.CostPerImage, r.TotalOCRAttempts, r.OCRAttemptsPerImage)
+	return fmt.Sprintf("total images processed: %d\ntotal cost:             $%.3f\ncost per image:         $%.3f\ntotal ocr attempts:     %d\nocr attempts per image: %.2f\ntotal duration:         %s\nduration per image:     %s\n",
+		r.TotalImagesProcessed, r.TotalCost, r.CostPerImage, r.TotalOCRAttempts, r.OCRAttemptsPerImage,
+		r.TotalDuration.Round(time.Millisecond), r.DurationPerImage.Round(time.Millisecond))
 }
 
 // App represents the main application logic
@@ -73,12 +78,14 @@ func (a *App) ProcessImages(ctx context.Context) (*ProcessImageResults, error) {
 		return nil, fmt.Errorf("%w: %v", ErrProcessingFailed, err)
 	}
 
-	// Calculate total cost and total attempts
+	// Calculate total cost, total attempts, and total duration
 	var totalCost float64
 	var totalAttempts int
+	var totalDuration time.Duration
 	for _, result := range results {
 		totalCost += result.Cost
 		totalAttempts += result.OCRAttempts
+		totalDuration += result.Duration
 	}
 
 	// Return results
@@ -88,6 +95,8 @@ func (a *App) ProcessImages(ctx context.Context) (*ProcessImageResults, error) {
 		CostPerImage:         totalCost / float64(len(results)),
 		TotalOCRAttempts:     totalAttempts,
 		OCRAttemptsPerImage:  float64(totalAttempts) / float64(len(results)),
+		TotalDuration:        totalDuration,
+		DurationPerImage:     totalDuration / time.Duration(len(results)),
 	}, nil
 }
 
@@ -141,6 +150,7 @@ func (a *App) processImagesParallel(ctx context.Context, imageNames []string) []
 
 // processImage processes a single image
 func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
+	startTime := time.Now()
 
 	var result OCRResult
 	result.ImageName = imageName
@@ -149,6 +159,7 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 	imageData, err := a.repo.LoadImageByName(imageName)
 	if err != nil {
 		result.Error = err
+		result.Duration = time.Since(startTime)
 		return result
 	}
 
@@ -156,6 +167,7 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 	imageData, err = a.resizer.ResizeImage(imageData, 1500)
 	if err != nil {
 		result.Error = err
+		result.Duration = time.Since(startTime)
 		return result
 	}
 
@@ -163,6 +175,7 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 	text, cost, attempts, err := a.ocrClient.OCRImage(ctx, imageData)
 	if err != nil {
 		result.Error = err
+		result.Duration = time.Since(startTime)
 		return result
 	}
 
@@ -171,6 +184,7 @@ func (a *App) processImage(ctx context.Context, imageName string) OCRResult {
 	result.Text = text
 	result.Cost = cost
 	result.OCRAttempts = attempts
+	result.Duration = time.Since(startTime)
 	return result
 }
 

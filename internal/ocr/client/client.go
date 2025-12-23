@@ -82,6 +82,9 @@ var DefaultMaxRetyAttempts = 5
 
 // OCRImage processes an image and returns the transcribed text, total cost from all attempts, and the number of attempts made
 func (c *Client) OCRImage(ctx context.Context, imageData []byte) (text string, totalCost float64, attempts int, err error) {
+	totalCost = 0
+	var lastErr error
+
 	for attempts < DefaultMaxRetyAttempts {
 		attempts++
 
@@ -100,9 +103,15 @@ func (c *Client) OCRImage(ctx context.Context, imageData []byte) (text string, t
 		if err == nil {
 			return text, totalCost, attempts, nil
 		}
+
+		lastErr = err
+		// Don't retry on authentication errors
+		if apiErr, ok := err.(*APIError); ok && apiErr.Status == http.StatusUnauthorized {
+			return "", totalCost, attempts, err
+		}
 	}
 
-	return "", totalCost, attempts, fmt.Errorf("%w: %v", ErrMaxRetriesExceeded, err)
+	return "", totalCost, attempts, fmt.Errorf("%w: %v", ErrMaxRetriesExceeded, lastErr)
 }
 
 // ocrImageOnce performs a single OCR request
