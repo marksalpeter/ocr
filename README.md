@@ -23,17 +23,14 @@ A command-line tool that uses OpenAI's GPT-4 Vision API to perform OCR (Optical 
 
 ### Option 1: Download Pre-built Binary (Recommended)
 
-1. Download the latest release from GitHub:
-   - Go to the [Releases](https://github.com/marksalpeter/ocr/releases) page
-   - Download `ocr-darwin-amd64` (for Intel Macs) or `ocr-darwin-arm64` (for Apple Silicon)
-   - Or download directly:
-   ```bash
-   # For Apple Silicon (M1/M2/M3)
-   curl -L -o ocr https://github.com/marksalpeter/ocr/releases/latest/download/ocr-darwin-arm64
-   
-   # For Intel Macs
-   curl -L -o ocr https://github.com/marksalpeter/ocr/releases/latest/download/ocr-darwin-amd64
-   ```
+1. Download the latest release from GitHub [Releases](https://github.com/marksalpeter/ocr/releases) page or download directly:   
+```bash
+# For Apple Silicon (M1/M2/M3)
+curl -L -o ocr https://github.com/marksalpeter/ocr/releases/latest/download/ocr-darwin-arm64
+
+# For Intel Macs
+curl -L -o ocr https://github.com/marksalpeter/ocr/releases/latest/download/ocr-darwin-amd64
+```
 
 2. Make it executable:
 ```bash
@@ -54,29 +51,13 @@ If you see the interactive configuration form, installation was successful!
 
 ### Option 2: Build from Source
 
-1. Clone the repository:
-```bash
-git clone https://github.com/marksalpeter/ocr.git
-cd ocr
-```
-
-2. Build the binary:
-```bash
-go build -o ocr ./cmd/ocr
-```
-
-3. (Optional) Move to a directory in your PATH:
-```bash
-sudo mv ocr /usr/local/bin/
-```
-
-### Option 3: Install via Go Install
+Assuming you have go installed and `$GOPATH/bin` or `$HOME/go/bin` is properly 
+configured in your PATH, then you can install the app in one line.
 
 ```bash
 go install github.com/marksalpeter/ocr/cmd/ocr@latest
 ```
 
-Make sure `$GOPATH/bin` or `$HOME/go/bin` is in your PATH.
 
 ## Usage
 
