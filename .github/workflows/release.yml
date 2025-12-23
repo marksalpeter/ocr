@@ -65,18 +65,26 @@ jobs:
       - name: Create checksums
         run: |
           cd artifacts
-          for file in ocr-*; do
-            shasum -a 256 "$file" > "${file}.sha256"
+          # Artifacts are extracted into directories, find the actual binary files
+          for dir in ocr-*; do
+            if [ -d "$dir" ]; then
+              # Find the binary file inside the directory
+              binary=$(find "$dir" -type f -name "ocr-*" | head -1)
+              if [ -n "$binary" ]; then
+                # Create checksum next to the binary
+                shasum -a 256 "$binary" > "${binary}.sha256"
+              fi
+            fi
           done
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/ocr-darwin-amd64
-            artifacts/ocr-darwin-amd64.sha256
-            artifacts/ocr-darwin-arm64
-            artifacts/ocr-darwin-arm64.sha256
+            artifacts/ocr-darwin-amd64/ocr-darwin-amd64
+            artifacts/ocr-darwin-amd64/ocr-darwin-amd64.sha256
+            artifacts/ocr-darwin-arm64/ocr-darwin-arm64
+            artifacts/ocr-darwin-arm64/ocr-darwin-arm64.sha256
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
